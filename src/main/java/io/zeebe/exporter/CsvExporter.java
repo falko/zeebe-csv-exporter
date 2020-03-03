@@ -26,12 +26,27 @@ import io.zeebe.exporter.writer.CsvFileWriter;
 import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.RecordType;
 import io.zeebe.protocol.record.ValueType;
+import io.zeebe.protocol.record.intent.Intent;
+import io.zeebe.protocol.record.intent.JobBatchIntent;
+import io.zeebe.protocol.record.intent.JobIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
+import io.zeebe.protocol.record.value.BpmnElementType;
+import io.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
+import io.zeebe.protocol.record.value.JobRecordValue;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.slf4j.Logger;
 
 public class CsvExporter implements Exporter {
@@ -40,12 +55,17 @@ public class CsvExporter implements Exporter {
   public static final String JOB_PREFIX = "job";
 
   private static final List<ValueType> EXPORT_VALUE_TYPE =
-      Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE);
+      Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
   private Logger log;
   private Path output;
   private WorkflowInstanceAggregator workflowInstanceCsvWriter;
   private JobAggregator jobCsvWriter;
+  @SuppressWarnings("rawtypes")
+  private Map<Long, List<Record>> tracesByElementInstanceKey = new HashMap<Long, List<Record>>();
+  @SuppressWarnings("rawtypes")
+  private Map<Long, List<Record>> tracesByJobKey = new HashMap<Long, List<Record>>();
+  HashMap<String, TimeAggregate> times = new HashMap<String, TimeAggregate>();
 
   @Override
   public void configure(final Context context) {
@@ -81,17 +101,112 @@ public class CsvExporter implements Exporter {
     jobCsvWriter = new JobAggregator(new CsvFileWriter(output, JOB_PREFIX, JobCsvRecord.class));
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Override
   public void export(final Record record) {
+    List<Record> trace;
+    long key = record.getKey();
+    Intent intent = record.getIntent();
+    if (isServiceTaskActivating(record)) {
+      trace = new ArrayList<Record>();
+      tracesByElementInstanceKey.put(key, trace);
+    }
     final ValueType valueType = record.getValueType();
     switch (valueType) {
       case WORKFLOW_INSTANCE:
         workflowInstanceCsvWriter.process(record);
+        if (isServiceTask(record)) {
+          trace = tracesByElementInstanceKey.get(key);
+          if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
+            tracesByElementInstanceKey.remove(key);
+            analyzeTrace(trace);
+          }
+        } else {
+          // other BPMN elements are ignored
+          trace = null;
+        }
         break;
       case JOB:
         jobCsvWriter.process(record);
+        if (intent == JobIntent.CREATE) {
+          trace = tracesByElementInstanceKey.get(((JobRecordValue) record.getValue()).getElementInstanceKey());
+        } else if (intent == JobIntent.CREATED) {
+          trace = tracesByElementInstanceKey.get(((JobRecordValue) record.getValue()).getElementInstanceKey());
+          tracesByJobKey.put(key, trace);
+        } else { // JOB:ACTIVATED, JOB:COMPLETE & JOB:COMPLETED
+          trace = tracesByJobKey.get(key);
+          if (intent == JobIntent.COMPLETED) {
+            tracesByJobKey.remove(key);
+          }
+        }
         break;
+      case JOB_BATCH:
+        if (intent == JobBatchIntent.ACTIVATE) {
+          for (Entry<Long, List<Record>> entry : tracesByJobKey.entrySet()) {
+            trace = entry.getValue();
+            trace.add(record);    
+          }
+        } else if (intent == JobBatchIntent.ACTIVATED) {
+          List<Long> jobKeys = ((JobBatchRecordValue) record.getValue()).getJobKeys();
+          for (Long jobKey : jobKeys) {
+            trace = tracesByJobKey.get(jobKey);
+            trace.add(record);    
+          }
+        } else {
+          throw new UnsupportedOperationException();          
+        }
+        return;
+    default:
+      throw new UnsupportedOperationException();
     }
+    if (trace != null) {
+      trace.add(record);  
+    }
+  }
+
+  private void analyzeTrace(List<Record> trace) {
+    for (Record record : trace) {
+      RecordType recordType = record.getRecordType();
+      ValueType valueType = record.getValueType();
+      Intent intent = record.getIntent();
+      String recordName = recordType + ":" + valueType + ":" + intent;
+      if (valueType == ValueType.WORKFLOW_INSTANCE) {
+        BpmnElementType bpmnElementType = ((WorkflowInstanceRecordValue) record.getValue()).getBpmnElementType();
+        recordName += ":" + bpmnElementType;
+      }
+      
+      try {
+        Record nextRecord = trace.get(trace.indexOf(record) + 1);
+        // TODO: special handling for everyting aroun JOB_BATCH
+        // TODO: EVENT:JOB:CREATED → COMMAND:JOB_BATCH:ACTIVATE with right worker id
+        // TODO: COMMAND:JOB_BATCH:ACTIVATE with right worker id → EVENT:JOB:ACTIVATED
+        // TODO: ignore any COMMAND:JOB_BATCH:ACTIVATE that doesn't have matching worker id
+        //       or if there are multiple with a matching worker id only take the last one
+        long time = nextRecord.getTimestamp() - record.getTimestamp();
+        if (!times.containsKey(recordName)) {
+          times.put(recordName, new TimeAggregate(recordName, time));
+        } else {
+          TimeAggregate timeAggregate = times.get(recordName);
+          timeAggregate.add(time);
+        }
+      } catch (IndexOutOfBoundsException e) {
+      }
+      TimeAggregate timeAggregate = times.get(recordName);
+      log.info(timeAggregate.toString());
+    }
+  }
+
+  private boolean isServiceTaskActivating(Record record) {
+    if (record.getRecordType() == RecordType.EVENT
+        && record.getIntent() == WorkflowInstanceIntent.ELEMENT_ACTIVATING
+        && isServiceTask(record)) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isServiceTask(Record record) {
+    return ((WorkflowInstanceRecordValue) record.getValue()).getBpmnElementType() == BpmnElementType.SERVICE_TASK;
   }
 
   @Override

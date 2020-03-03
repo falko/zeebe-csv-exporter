@@ -19,8 +19,13 @@ import io.zeebe.exporter.RecordMissingException;
 import io.zeebe.exporter.record.CsvRecord;
 import io.zeebe.exporter.writer.CsvWriter;
 import io.zeebe.protocol.record.Record;
+import io.zeebe.protocol.record.RecordType;
 import io.zeebe.protocol.record.RecordValue;
 import io.zeebe.protocol.record.intent.Intent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
+import io.zeebe.protocol.record.value.BpmnElementType;
+import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
+
 import java.util.HashMap;
 import java.util.Map;
 
