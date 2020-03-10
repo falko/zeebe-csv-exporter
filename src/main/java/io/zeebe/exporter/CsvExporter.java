@@ -15,6 +15,7 @@
  */
 package io.zeebe.exporter;
 
+import io.zeebe.exporter.analysis.InstanceKeyAnalyzer;
 import io.zeebe.exporter.api.Exporter;
 import io.zeebe.exporter.api.context.Context;
 import io.zeebe.exporter.api.context.Context.RecordFilter;
@@ -43,7 +44,7 @@ public class CsvExporter implements Exporter {
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
-  private TimeWriter timeWriter = new TimeWriter();
+  private TimeRecorder timeRecorder = new TimeRecorder(new InstanceKeyAnalyzer());
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey = new HashMap<>();
   private Map<Long, List<TimeRecord>> tracesByJobKey = new HashMap<>();
 
@@ -61,12 +62,11 @@ public class CsvExporter implements Exporter {
             return EXPORT_VALUE_TYPE.contains(valueType);
           }
         });
-    timeWriter.start();
   }
 
   @Override
   public void open(final Controller controller) {
-    // configure the timer
+    timeRecorder.start();
   }
 
   @Override
@@ -86,7 +86,7 @@ public class CsvExporter implements Exporter {
           trace = tracesByElementInstanceKey.get(key);
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             tracesByElementInstanceKey.remove(key);
-            timeWriter.add(key, trace);
+            timeRecorder.add(key, trace);
           }
         } else {
           trace = null; // other BPMN elements are ignored
@@ -147,6 +147,6 @@ public class CsvExporter implements Exporter {
   @Override
   public void close() {
     // stop the watcher
-    timeWriter.stop();
+    timeRecorder.stop();
   }
 }
