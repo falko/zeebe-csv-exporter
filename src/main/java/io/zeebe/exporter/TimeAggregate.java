@@ -24,7 +24,7 @@ public class TimeAggregate {
   private String recordName;
 
   public TimeAggregate(String recordName, long time) {
-    this.setRecordName(recordName);
+    this.recordName = recordName;
     sumTime = minTime = maxTime = time;
     count = 1;
   }
@@ -57,39 +57,19 @@ public class TimeAggregate {
     return sumTime;
   }
 
-  public void setSumTime(long sumTime) {
-    this.sumTime = sumTime;
-  }
-
   public long getMinTime() {
     return minTime;
-  }
-
-  public void setMinTime(long minTime) {
-    this.minTime = minTime;
   }
 
   public long getMaxTime() {
     return maxTime;
   }
 
-  public void setMaxTime(long maxTime) {
-    this.maxTime = maxTime;
-  }
-
   public long getCount() {
     return count;
   }
 
-  public void setCount(long count) {
-    this.count = count;
-  }
-
   public String getRecordName() {
     return recordName;
-  }
-
-  public void setRecordName(String recordName) {
-    this.recordName = recordName;
   }
 }

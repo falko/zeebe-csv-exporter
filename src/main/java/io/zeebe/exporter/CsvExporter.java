@@ -15,7 +15,7 @@
  */
 package io.zeebe.exporter;
 
-import io.zeebe.exporter.analysis.InstanceKeyAnalyzer;
+import io.zeebe.exporter.analysis.InstanceTraceAnalyzer;
 import io.zeebe.exporter.api.Exporter;
 import io.zeebe.exporter.api.context.Context;
 import io.zeebe.exporter.api.context.Context.RecordFilter;
@@ -44,7 +44,7 @@ public class CsvExporter implements Exporter {
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
-  private TimeRecorder timeRecorder = new TimeRecorder(new InstanceKeyAnalyzer());
+  private ScheduledRecorder scheduledRecorder = new ScheduledRecorder(new InstanceTraceAnalyzer());
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey = new HashMap<>();
   private Map<Long, List<TimeRecord>> tracesByJobKey = new HashMap<>();
 
@@ -66,11 +66,11 @@ public class CsvExporter implements Exporter {
 
   @Override
   public void open(final Controller controller) {
-    timeRecorder.start();
+    scheduledRecorder.start();
   }
 
   @Override
-  // TODO: simplify this code
+  // TODO: if possible, try to simplify this code
   public void export(final Record record) {
     List<TimeRecord> trace;
     long key = record.getKey();
@@ -86,7 +86,7 @@ public class CsvExporter implements Exporter {
           trace = tracesByElementInstanceKey.get(key);
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             tracesByElementInstanceKey.remove(key);
-            timeRecorder.add(key, trace);
+            scheduledRecorder.addCompleted(key, trace);
           }
         } else {
           trace = null; // other BPMN elements are ignored
@@ -147,6 +147,6 @@ public class CsvExporter implements Exporter {
   @Override
   public void close() {
     // stop the watcher
-    timeRecorder.stop();
+    scheduledRecorder.stop();
   }
 }

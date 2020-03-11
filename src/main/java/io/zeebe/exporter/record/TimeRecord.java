@@ -19,46 +19,87 @@ import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.RecordType;
 import io.zeebe.protocol.record.ValueType;
 import io.zeebe.protocol.record.intent.Intent;
+import io.zeebe.protocol.record.intent.JobBatchIntent;
+import io.zeebe.protocol.record.intent.JobIntent;
 import io.zeebe.protocol.record.value.BpmnElementType;
+import io.zeebe.protocol.record.value.JobBatchRecordValue;
+import io.zeebe.protocol.record.value.JobRecordValue;
 import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
 
 public class TimeRecord {
 
-  private final String recordName;
+  private final String workerId;
+  private final RecordType recordType;
+  private final ValueType valueType;
+  private final Intent intent;
+  private final Object value;
   private final long timestamp;
 
   public TimeRecord(final Record<?> record) {
-    this(getName(record), record.getTimestamp());
+    this.workerId = this.getWorkerId(record);
+    this.recordType = record.getRecordType();
+    this.valueType = record.getValueType();
+    this.intent = record.getIntent();
+    this.value = record.getValue();
+    this.timestamp = record.getTimestamp();
   }
 
-  public TimeRecord(final String recordName, final long timestamp) {
-    this.recordName = recordName;
-    this.timestamp = timestamp;
+  public String getWorkerId() {
+    return workerId;
   }
 
-  public String getRecordName() {
-    return recordName;
+  public RecordType getRecordType() {
+    return recordType;
+  }
+
+  public ValueType getValueType() {
+    return valueType;
+  }
+
+  public Intent getIntent() {
+    return intent;
+  }
+
+  public Object getValue() {
+    return value;
   }
 
   public long getTimestamp() {
     return timestamp;
   }
 
-  private static String getName(final Record<?> record) {
-    final RecordType recordType = record.getRecordType();
-    final ValueType valueType = record.getValueType();
-    final Intent intent = record.getIntent();
+  public boolean isCommandJobBatchActivate() {
+    return recordType == RecordType.COMMAND
+        && valueType == ValueType.JOB_BATCH
+        && intent == JobBatchIntent.ACTIVATE;
+  }
+
+  public boolean isEventJobActivated() {
+    return recordType == RecordType.EVENT
+        && valueType == ValueType.JOB
+        && intent == JobIntent.ACTIVATED;
+  }
+
+  public String getRecordName() {
     final String recordName = recordType + ":" + valueType + ":" + intent;
     if (valueType == ValueType.WORKFLOW_INSTANCE) {
       final BpmnElementType bpmnElementType =
-          ((WorkflowInstanceRecordValue) record.getValue()).getBpmnElementType();
+          ((WorkflowInstanceRecordValue) value).getBpmnElementType();
       return recordName + ":" + bpmnElementType;
     }
     return recordName;
   }
 
-  @Override
-  public String toString() {
-    return "TimeRecord{" + "recordName='" + recordName + '\'' + ", timestamp=" + timestamp + '}';
+  private String getWorkerId(final Record<?> record) {
+    if (record != null) {
+      final Object value = record.getValue();
+      if (value instanceof JobRecordValue) {
+        return ((JobRecordValue) value).getWorker();
+      }
+      if (value instanceof JobBatchRecordValue) {
+        return ((JobBatchRecordValue) value).getWorker();
+      }
+    }
+    return null;
   }
 }

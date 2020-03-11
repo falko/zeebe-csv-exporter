@@ -20,18 +20,20 @@ import io.zeebe.exporter.record.TimeRecord;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TimeRecorder {
+public class ScheduledRecorder {
+
+  private static final int DELAY = 600;
 
   private Timer timer;
-  private Map<Long, List<TimeRecord>> completed = new ConcurrentHashMap<>();
-  private Analyzer analyzer;
+  private final Map<Long, List<TimeRecord>> completed = new ConcurrentHashMap<>();
+  private final Analyzer analyzer;
 
-  public TimeRecorder(final Analyzer analyzer) {
+  public ScheduledRecorder(final Analyzer analyzer) {
     this.analyzer = analyzer;
   }
 
-  public void add(final Long key, List<TimeRecord> tracesByElementInstanceKey) {
-    this.completed.put(key, tracesByElementInstanceKey);
+  public void addCompleted(final Long key, final List<TimeRecord> tracesByElementInstanceKey) {
+    completed.put(key, tracesByElementInstanceKey);
   }
 
   public void start() {
@@ -41,15 +43,18 @@ public class TimeRecorder {
           @Override
           public void run() {
             final Map<Long, List<TimeRecord>> copy = copyAndClear();
+            // We're looking for an entire period of time here... if we
+            // have the necessity to evaluate instance by instance, then
+            // the list below should be removed.
             final List<TimeRecord> trace = new ArrayList<>();
             for (final Map.Entry<Long, List<TimeRecord>> entry : copy.entrySet()) {
               trace.addAll(entry.getValue());
             }
-            analyzer.check(trace);
+            analyzer.analyze(trace);
           }
         },
-        6000, // TODO: turn it configurable
-        6000); // TODO: turn it configurable
+        DELAY, // time to start to display the data
+        DELAY); // delay time between each display
   }
 
   public void stop() {
@@ -57,6 +62,8 @@ public class TimeRecorder {
     timer = null;
   }
 
+  // We're removing just the keys that are being moved
+  // to the log file
   private Map<Long, List<TimeRecord>> copyAndClear() {
     final Map<Long, List<TimeRecord>> copy = new HashMap<>(completed);
     completed.keySet().removeAll(copy.keySet());

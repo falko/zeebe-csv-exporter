@@ -19,5 +19,5 @@ import io.zeebe.exporter.record.TimeRecord;
 import java.util.List;
 
 public interface Analyzer {
-  void check(List<TimeRecord> trace);
+  void analyze(List<TimeRecord> trace);
 }
