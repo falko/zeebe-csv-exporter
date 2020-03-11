@@ -17,20 +17,23 @@ package io.zeebe.exporter;
 
 public class TimeAggregate {
 
-  private long sumTime;
-  private long minTime;
-  private long maxTime;
-  private long count;
+  private double sumTime;
+  private double minTime;
+  private double maxTime;
+  private double varTime;
+  private double count;
   private String recordName;
 
-  public TimeAggregate(String recordName, long time) {
+  public TimeAggregate(String recordName, double time) {
     this.recordName = recordName;
     sumTime = minTime = maxTime = time;
+    varTime = Math.pow(time * -1, 2);
     count = 1;
   }
 
-  public void add(long time) {
+  public void add(double time) {
     sumTime += time;
+    varTime += Math.pow(time * -1, 2);
     if (time < minTime) {
       minTime = time;
     }
@@ -38,6 +41,10 @@ public class TimeAggregate {
       maxTime = time;
     }
     ++count;
+  }
+
+  public double getMssd() {
+    return varTime / (count * 2);
   }
 
   @Override
@@ -50,22 +57,28 @@ public class TimeAggregate {
         + ", min="
         + minTime
         + ", max="
-        + maxTime;
+        + maxTime
+        + ", mssd="
+        + String.format("%f", this.getMssd());
   }
 
-  public long getSumTime() {
+  public double getSumTime() {
     return sumTime;
   }
 
-  public long getMinTime() {
+  public double getMinTime() {
     return minTime;
   }
 
-  public long getMaxTime() {
+  public double getMaxTime() {
     return maxTime;
   }
 
-  public long getCount() {
+  public double getVarTime() {
+    return varTime;
+  }
+
+  public double getCount() {
     return count;
   }
 
