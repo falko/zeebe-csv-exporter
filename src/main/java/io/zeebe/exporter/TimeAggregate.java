@@ -44,7 +44,21 @@ public class TimeAggregate {
   }
 
   public double getMssd() {
-    return varTime / (count * 2);
+    return Math.sqrt(varTime / (count * 2));
+  }
+
+  public String toCsvRow() {
+    return recordName
+        + ";"
+        + sumTime / count
+        + ";"
+        + count
+        + ";"
+        + minTime
+        + ";"
+        + maxTime
+        + ";"
+        + String.format("%f", this.getMssd());
   }
 
   @Override

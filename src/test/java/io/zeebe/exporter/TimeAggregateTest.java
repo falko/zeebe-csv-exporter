@@ -33,6 +33,6 @@ public class TimeAggregateTest {
     timeAggregate.add(0.500 - 0.479);
     timeAggregate.add(0.479 - 0.490);
     timeAggregate.add(0.490 - 0.510);
-    Assert.assertEquals("0.000081", String.format("%f", timeAggregate.getMssd()));
+    Assert.assertEquals("0.008995", String.format("%f", timeAggregate.getMssd()));
   }
 }

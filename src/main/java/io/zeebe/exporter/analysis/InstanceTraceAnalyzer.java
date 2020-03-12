@@ -25,32 +25,37 @@ import java.util.Map;
 
 public class InstanceTraceAnalyzer implements Analyzer {
 
+  private static final String CSV_HEADER = "Event;AVG;Count;Min;Max;MSSD";
+
   @Override
   public void analyze(final List<TimeRecord> trace) {
-    final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
-    for (final TimeRecord currRecord : trace) {
-      final int nextIndex = trace.indexOf(currRecord) + 1;
-      // Ignore all COMMAND:JOB_BATCH:ACTIVATE to process
-      // when we have a corresponding EVENT:JOB:ACTIVATED
-      if (nextIndex < trace.size() && !currRecord.isCommandJobBatchActivate()) {
-        final TimeRecord nextRecord = trace.get(nextIndex);
-        // Push new aggregated data to the cache, or update
-        // the aggregated data by event type
-        this.pushTimeDiff(timeDiffCache, currRecord, nextRecord);
-        if (currRecord.isEventJobActivated()) {
-          this.pushJobBatchTimeDiff(timeDiffCache, trace, currRecord, nextIndex - 1);
+    if (!trace.isEmpty()) {
+      final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
+      for (final TimeRecord currRecord : trace) {
+        final int nextIndex = trace.indexOf(currRecord) + 1;
+        // Ignore all COMMAND:JOB_BATCH:ACTIVATE to process
+        // when we have a corresponding EVENT:JOB:ACTIVATED
+        if (nextIndex < trace.size() && !currRecord.isCommandJobBatchActivate()) {
+          if (currRecord.isEventJobActivated()) {
+            this.pushJobBatchTimeDiff(timeDiffCache, trace, currRecord, nextIndex - 1);
+          }
+          final TimeRecord nextRecord = trace.get(nextIndex);
+          // Push new aggregated data to the cache, or update
+          // the aggregated data by event type
+          this.pushTimeDiff(timeDiffCache, currRecord, nextRecord);
         }
       }
+      // We're waiting until the end so every event can be
+      // aggregated. If we display the data in the previous
+      // loop, we will duplicate each event type
+      this.showData(timeDiffCache);
     }
-    // We're waiting until the end so every event can be
-    // aggregated. If we display the data in the previous
-    // loop, we will duplicate each event type
-    this.showData(timeDiffCache);
   }
 
   private void showData(final Map<String, TimeAggregate> timeDiffCache) {
+    System.out.println(CSV_HEADER);
     for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
-      System.out.println(entry.getValue()); // TODO: use a logger
+      System.out.println(entry.getValue().toCsvRow());
     }
   }
 
