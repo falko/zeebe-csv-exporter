@@ -41,12 +41,14 @@ import java.util.Map.Entry;
 
 public class CsvExporter implements Exporter {
 
+  private static final String DELAY_KEY = "delay";
+  private static final long DEFAULT_DELAY = 60 * 1000;
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
-  private ScheduledRecorder scheduledRecorder = new ScheduledRecorder(new InstanceTraceAnalyzer());
-  private Map<Long, List<TimeRecord>> tracesByElementInstanceKey = new HashMap<>();
-  private Map<Long, List<TimeRecord>> tracesByJobKey = new HashMap<>();
+  private ScheduledRecorder scheduledRecorder;
+  private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
+  private Map<Long, List<TimeRecord>> tracesByJobKey;
 
   @Override
   public void configure(final Context context) {
@@ -62,6 +64,11 @@ public class CsvExporter implements Exporter {
             return EXPORT_VALUE_TYPE.contains(valueType);
           }
         });
+    final int delay = this.getDelay(context);
+
+    this.scheduledRecorder = new ScheduledRecorder(delay, new InstanceTraceAnalyzer());
+    this.tracesByElementInstanceKey = new HashMap<>();
+    this.tracesByJobKey = new HashMap<>();
   }
 
   @Override
@@ -142,6 +149,15 @@ public class CsvExporter implements Exporter {
   private boolean isServiceTask(final Record record) {
     return ((WorkflowInstanceRecordValue) record.getValue()).getBpmnElementType()
         == BpmnElementType.SERVICE_TASK;
+  }
+
+  private int getDelay(final Context context) {
+    final Map<String, Object> arguments = context.getConfiguration().getArguments();
+    long delay = DEFAULT_DELAY;
+    if (arguments.containsKey(DELAY_KEY)) {
+      delay = (Long) arguments.get(DELAY_KEY);
+    }
+    return (int) delay;
   }
 
   @Override

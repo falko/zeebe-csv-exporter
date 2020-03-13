@@ -15,26 +15,77 @@
  */
 package io.zeebe.exporter;
 
+import io.zeebe.test.exporter.ExporterIntegrationRule;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 // TODO: write some tests
 public class CsvExporterIT {
 
+  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+  private ExporterIntegrationRule integrationRule;
+
   @Before
-  public void setUp() {}
+  public void setUp() {
+    final CsvExporterConfiguration configuration =
+        new CsvExporterConfiguration().setOutput(temporaryFolder.getRoot().getAbsolutePath());
+    integrationRule =
+        new ExporterIntegrationRule().configure("csv-exporter", CsvExporter.class, configuration);
+    integrationRule.start();
+  }
 
   @After
-  public void tearDown() {}
+  public void tearDown() {
+    integrationRule.stop();
+  }
 
   @Test
-  public void shouldExportRecords() {
+  public void shouldExportRecords() throws Exception {
     // when
+    integrationRule.performSampleWorkload();
+
+    // waiting for timer task
+    TimeUnit.MILLISECONDS.sleep(100);
 
     // then
     assertRecords();
   }
 
-  private void assertRecords() {}
+  private void assertRecords() {
+    // TODO:
+  }
+
+  @SuppressWarnings("unused")
+  public class CsvExporterConfiguration {
+    private String output = "csv";
+    private Integer delay = 1;
+
+    public String getOutput() {
+      return output;
+    }
+
+    public Integer getDelay() {
+      return delay;
+    }
+
+    public CsvExporterConfiguration setOutput(String output) {
+      this.output = output;
+      return this;
+    }
+
+    public CsvExporterConfiguration setDelay(Integer delay) {
+      this.delay = delay;
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return "CsvExporterConfiguration{" + "output='" + output + '\'' + ", delay=" + delay + '}';
+    }
+  }
 }

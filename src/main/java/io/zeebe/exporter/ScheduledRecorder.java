@@ -22,13 +22,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ScheduledRecorder {
 
-  private static final int DELAY = 600;
+  private final int delay;
 
   private Timer timer;
   private final Map<Long, List<TimeRecord>> completed = new ConcurrentHashMap<>();
   private final Analyzer analyzer;
 
-  public ScheduledRecorder(final Analyzer analyzer) {
+  public ScheduledRecorder(final int delay, final Analyzer analyzer) {
+    this.delay = delay;
     this.analyzer = analyzer;
   }
 
@@ -53,8 +54,8 @@ public class ScheduledRecorder {
             analyzer.analyze(trace);
           }
         },
-        DELAY, // time to start to display the data
-        DELAY); // delay time between each display
+        delay, // time to start to display the data
+        delay); // delay time between each display
   }
 
   public void stop() {
