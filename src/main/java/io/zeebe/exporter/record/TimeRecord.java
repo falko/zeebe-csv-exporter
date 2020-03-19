@@ -21,31 +21,32 @@ import io.zeebe.protocol.record.ValueType;
 import io.zeebe.protocol.record.intent.Intent;
 import io.zeebe.protocol.record.intent.JobBatchIntent;
 import io.zeebe.protocol.record.intent.JobIntent;
+import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
 import io.zeebe.protocol.record.value.BpmnElementType;
 import io.zeebe.protocol.record.value.JobBatchRecordValue;
 import io.zeebe.protocol.record.value.JobRecordValue;
 import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
+import java.util.List;
 
 public class TimeRecord {
 
-  private final String workerId;
   private final RecordType recordType;
   private final ValueType valueType;
   private final Intent intent;
-  private final Object value;
+  private final long key;
   private final long timestamp;
+  private BpmnElementType bpmnElementType;
+  private long elementInstanceKey;
+  private List<Long> jobKeys;
+  private String workerId;
 
   public TimeRecord(final Record<?> record) {
-    this.workerId = this.getWorkerId(record);
     this.recordType = record.getRecordType();
     this.valueType = record.getValueType();
     this.intent = record.getIntent();
-    this.value = record.getValue(); // TODO extract all necessary data from value object
+    this.key = record.getKey();
     this.timestamp = record.getTimestamp();
-  }
-
-  public String getWorkerId() {
-    return workerId;
+    this.cloneValue(record);
   }
 
   public RecordType getRecordType() {
@@ -60,12 +61,28 @@ public class TimeRecord {
     return intent;
   }
 
-  public Object getValue() {
-    return value;
+  public long getKey() {
+    return key;
   }
 
   public long getTimestamp() {
     return timestamp;
+  }
+
+  public BpmnElementType getBpmnElementType() {
+    return bpmnElementType;
+  }
+
+  public long getElementInstanceKey() {
+    return elementInstanceKey;
+  }
+
+  public List<Long> getJobKeys() {
+    return jobKeys;
+  }
+
+  public String getWorkerId() {
+    return workerId;
   }
 
   public boolean isCommandJobBatchActivate() {
@@ -80,26 +97,74 @@ public class TimeRecord {
         && intent == JobIntent.ACTIVATED;
   }
 
+  public boolean isServiceTask() {
+    return bpmnElementType == BpmnElementType.SERVICE_TASK;
+  }
+
+  public boolean isActivating() {
+    return recordType == RecordType.EVENT && intent == WorkflowInstanceIntent.ELEMENT_ACTIVATING;
+  }
+
   public String getRecordName() {
     final String recordName = recordType + ":" + valueType + ":" + intent;
     if (valueType == ValueType.WORKFLOW_INSTANCE) {
-      final BpmnElementType bpmnElementType =
-          ((WorkflowInstanceRecordValue) value).getBpmnElementType();
       return recordName + ":" + bpmnElementType;
     }
     return recordName;
   }
 
-  private String getWorkerId(final Record<?> record) {
-    if (record != null) {
-      final Object value = record.getValue();
-      if (value instanceof JobRecordValue) {
-        return ((JobRecordValue) value).getWorker();
-      }
-      if (value instanceof JobBatchRecordValue) {
-        return ((JobBatchRecordValue) value).getWorker();
-      }
+  private void cloneValue(final Record<?> record) {
+    if (this.isWorkflowInstance(record)) {
+      final WorkflowInstanceRecordValue recordValue =
+          (WorkflowInstanceRecordValue) record.getValue();
+      this.bpmnElementType = recordValue.getBpmnElementType();
+    } else if (this.isJob(record)) {
+      final JobRecordValue recordValue = (JobRecordValue) record.getValue();
+      this.elementInstanceKey = recordValue.getElementInstanceKey();
+      this.workerId = recordValue.getWorker();
+    } else if (this.isJobBatch(record)) {
+      final JobBatchRecordValue recordValue = (JobBatchRecordValue) record.getValue();
+      this.jobKeys = recordValue.getJobKeys();
+      this.workerId = recordValue.getWorker();
     }
-    return null;
+  }
+
+  private boolean isWorkflowInstance(final Record<?> record) {
+    return record != null && record.getValue() instanceof WorkflowInstanceRecordValue;
+  }
+
+  private boolean isJob(final Record<?> record) {
+    return record != null && record.getValue() instanceof JobRecordValue;
+  }
+
+  private boolean isJobBatch(final Record<?> record) {
+    return record != null && record.getValue() instanceof JobBatchRecordValue;
+  }
+
+  @Override
+  public String toString() {
+    return "TimeRecord{"
+        + "recordName="
+        + this.getRecordName()
+        + ", recordType="
+        + recordType
+        + ", valueType="
+        + valueType
+        + ", intent="
+        + intent
+        + ", key="
+        + key
+        + ", timestamp="
+        + timestamp
+        + ", bpmnElementType="
+        + bpmnElementType
+        + ", elementInstanceKey="
+        + elementInstanceKey
+        + ", jobKeys="
+        + jobKeys
+        + ", workerId='"
+        + workerId
+        + '\''
+        + '}';
   }
 }

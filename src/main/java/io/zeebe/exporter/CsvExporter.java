@@ -28,10 +28,6 @@ import io.zeebe.protocol.record.intent.Intent;
 import io.zeebe.protocol.record.intent.JobBatchIntent;
 import io.zeebe.protocol.record.intent.JobIntent;
 import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
-import io.zeebe.protocol.record.value.BpmnElementType;
-import io.zeebe.protocol.record.value.JobBatchRecordValue;
-import io.zeebe.protocol.record.value.JobRecordValue;
-import io.zeebe.protocol.record.value.WorkflowInstanceRecordValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,10 +38,11 @@ import java.util.Map.Entry;
 public class CsvExporter implements Exporter {
 
   private static final String DELAY_KEY = "delay";
-  private static final long DEFAULT_DELAY = 60 * 1000;
+  private static final long DEFAULT_DELAY = 60 * 10;
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
+  private Controller controller;
   private ScheduledRecorder scheduledRecorder;
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
   private Map<Long, List<TimeRecord>> tracesByJobKey;
@@ -73,24 +70,24 @@ public class CsvExporter implements Exporter {
 
   @Override
   public void open(final Controller controller) {
+    this.controller = controller;
     scheduledRecorder.start();
   }
 
   @Override
-  // TODO: if possible, try to simplify this code
   public void export(final Record record) {
-    // TODO: final TimeRecord timeRecord = new TimeRecord(record);
+    final TimeRecord clone = new TimeRecord(record);
     List<TimeRecord> trace;
-    long key = record.getKey();
-    Intent intent = record.getIntent();
-    if (isServiceTaskActivating(record)) { // TODO if (timeRecord.isServiceTaskActivating()) {
+    long key = clone.getKey();
+    Intent intent = clone.getIntent();
+    if (clone.isServiceTask() && clone.isActivating()) {
       trace = new ArrayList<>();
       tracesByElementInstanceKey.put(key, trace);
     }
-    final ValueType valueType = record.getValueType();
+    final ValueType valueType = clone.getValueType();
     switch (valueType) {
       case WORKFLOW_INSTANCE:
-        if (isServiceTask(record)) {
+        if (clone.isServiceTask()) {
           trace = tracesByElementInstanceKey.get(key);
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             tracesByElementInstanceKey.remove(key);
@@ -102,13 +99,9 @@ public class CsvExporter implements Exporter {
         break;
       case JOB:
         if (intent == JobIntent.CREATE) {
-          trace =
-              tracesByElementInstanceKey.get(
-                  ((JobRecordValue) record.getValue()).getElementInstanceKey());
+          trace = tracesByElementInstanceKey.get(clone.getElementInstanceKey());
         } else if (intent == JobIntent.CREATED) {
-          trace =
-              tracesByElementInstanceKey.get(
-                  ((JobRecordValue) record.getValue()).getElementInstanceKey());
+          trace = tracesByElementInstanceKey.get(clone.getElementInstanceKey());
           tracesByJobKey.put(key, trace);
         } else { // JOB:ACTIVATED, JOB:COMPLETE & JOB:COMPLETED
           trace = tracesByJobKey.get(key);
@@ -121,13 +114,13 @@ public class CsvExporter implements Exporter {
         if (intent == JobBatchIntent.ACTIVATE) {
           for (Entry<Long, List<TimeRecord>> entry : tracesByJobKey.entrySet()) {
             trace = entry.getValue();
-            trace.add(new TimeRecord(record));
+            trace.add(clone);
           }
         } else if (intent == JobBatchIntent.ACTIVATED) {
-          List<Long> jobKeys = ((JobBatchRecordValue) record.getValue()).getJobKeys();
+          List<Long> jobKeys = clone.getJobKeys();
           for (Long jobKey : jobKeys) {
             trace = tracesByJobKey.get(jobKey);
-            trace.add(new TimeRecord(record));
+            trace.add(clone);
           }
         } else {
           throw new UnsupportedOperationException();
@@ -137,21 +130,13 @@ public class CsvExporter implements Exporter {
         throw new UnsupportedOperationException();
     }
     if (trace != null) {
-      trace.add(new TimeRecord(record));
+      trace.add(clone);
     }
-    // TODO call {@link Controller#updateLastExportedRecordPosition(long)}
-    // to signal that this record should not be received here ever again
   }
 
-  private boolean isServiceTaskActivating(final Record record) {
-    return record.getRecordType() == RecordType.EVENT
-        && record.getIntent() == WorkflowInstanceIntent.ELEMENT_ACTIVATING
-        && isServiceTask(record);
-  }
-
-  private boolean isServiceTask(final Record record) {
-    return ((WorkflowInstanceRecordValue) record.getValue()).getBpmnElementType()
-        == BpmnElementType.SERVICE_TASK;
+  @Override
+  public void close() {
+    scheduledRecorder.stop();
   }
 
   private int getDelay(final Context context) {
@@ -161,11 +146,5 @@ public class CsvExporter implements Exporter {
       delay = (Long) arguments.get(DELAY_KEY);
     }
     return (int) delay;
-  }
-
-  @Override
-  public void close() {
-    // stop the watcher
-    scheduledRecorder.stop();
   }
 }

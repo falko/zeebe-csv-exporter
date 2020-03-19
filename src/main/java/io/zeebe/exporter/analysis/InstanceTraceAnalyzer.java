@@ -19,9 +19,7 @@ import static java.util.Map.Entry;
 
 import io.zeebe.exporter.TimeAggregate;
 import io.zeebe.exporter.record.TimeRecord;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class InstanceTraceAnalyzer implements Analyzer {
 
@@ -30,6 +28,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
   @Override
   public void analyze(final List<TimeRecord> trace) {
     if (!trace.isEmpty()) {
+      trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp));
       final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
       for (final TimeRecord currRecord : trace) {
         final int nextIndex = trace.indexOf(currRecord) + 1;
