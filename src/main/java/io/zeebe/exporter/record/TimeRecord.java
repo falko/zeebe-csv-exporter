@@ -40,7 +40,7 @@ public class TimeRecord {
     this.recordType = record.getRecordType();
     this.valueType = record.getValueType();
     this.intent = record.getIntent();
-    this.value = record.getValue();
+    this.value = record.getValue(); // TODO extract all necessary data from value object
     this.timestamp = record.getTimestamp();
   }
 

@@ -79,10 +79,11 @@ public class CsvExporter implements Exporter {
   @Override
   // TODO: if possible, try to simplify this code
   public void export(final Record record) {
+    // TODO: final TimeRecord timeRecord = new TimeRecord(record);
     List<TimeRecord> trace;
     long key = record.getKey();
     Intent intent = record.getIntent();
-    if (isServiceTaskActivating(record)) {
+    if (isServiceTaskActivating(record)) { // TODO if (timeRecord.isServiceTaskActivating()) {
       trace = new ArrayList<>();
       tracesByElementInstanceKey.put(key, trace);
     }
@@ -138,6 +139,8 @@ public class CsvExporter implements Exporter {
     if (trace != null) {
       trace.add(new TimeRecord(record));
     }
+    // TODO call {@link Controller#updateLastExportedRecordPosition(long)}
+    // to signal that this record should not be received here ever again
   }
 
   private boolean isServiceTaskActivating(final Record record) {
@@ -154,7 +157,7 @@ public class CsvExporter implements Exporter {
   private int getDelay(final Context context) {
     final Map<String, Object> arguments = context.getConfiguration().getArguments();
     long delay = DEFAULT_DELAY;
-    if (arguments.containsKey(DELAY_KEY)) {
+    if (arguments != null && arguments.containsKey(DELAY_KEY)) {
       delay = (Long) arguments.get(DELAY_KEY);
     }
     return (int) delay;
