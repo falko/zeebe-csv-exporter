@@ -38,11 +38,10 @@ import java.util.Map.Entry;
 public class CsvExporter implements Exporter {
 
   private static final String DELAY_KEY = "delay";
-  private static final long DEFAULT_DELAY = 60 * 10;
+  private static final long DEFAULT_DELAY = 60 * 1000;
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
-  private Controller controller;
   private ScheduledRecorder scheduledRecorder;
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
   private Map<Long, List<TimeRecord>> tracesByJobKey;
@@ -70,7 +69,6 @@ public class CsvExporter implements Exporter {
 
   @Override
   public void open(final Controller controller) {
-    this.controller = controller;
     scheduledRecorder.start();
   }
 
