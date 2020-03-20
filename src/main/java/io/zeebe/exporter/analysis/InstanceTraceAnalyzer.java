@@ -34,10 +34,11 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   @Override
-  public void analyze(final Map<Long, List<TimeRecord>> traces) {
+  public void analyze(final Map<Long, List<TimeRecord>> traces) { // TODO simplify to a list of lists
     for (final Entry<Long, List<TimeRecord>> entry : traces.entrySet()) {
       final List<TimeRecord> trace = entry.getValue();
       if (trace.isEmpty()) {
+        logger.error("Unexpected empty trace in analysis");
         continue;
       }
       trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp));
@@ -76,9 +77,9 @@ public class InstanceTraceAnalyzer implements Analyzer {
       final Map<String, TimeAggregate> timeDiffCache,
       final List<TimeRecord> trace,
       final TimeRecord currRecord,
-      final int thisIndex) {
+      final int currIndex) {
     if (currRecord.getWorkerId() != null) {
-      for (int index = thisIndex; index > 0; index--) {
+      for (int index = currIndex; index > 0; index--) {
         final TimeRecord candidateRecord = trace.get(index);
         if (candidateRecord.isCommandJobBatchActivate()
             && candidateRecord.getWorkerId() != null
