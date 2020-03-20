@@ -88,12 +88,11 @@ public class CsvExporter implements Exporter {
       case WORKFLOW_INSTANCE:
         if (clone.isServiceTask()) {
           trace = tracesByElementInstanceKey.get(key);
+          trace.add(clone);
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             tracesByElementInstanceKey.remove(key);
             scheduledRecorder.addCompleted(key, trace);
           }
-        } else {
-          trace = null; // other BPMN elements are ignored
         }
         break;
       case JOB:
@@ -108,6 +107,7 @@ public class CsvExporter implements Exporter {
             tracesByJobKey.remove(key);
           }
         }
+        trace.add(clone);
         break;
       case JOB_BATCH:
         if (intent == JobBatchIntent.ACTIVATE) {
@@ -124,12 +124,9 @@ public class CsvExporter implements Exporter {
         } else {
           throw new UnsupportedOperationException();
         }
-        return;
+        break;
       default:
         throw new UnsupportedOperationException();
-    }
-    if (trace != null) {
-      trace.add(clone);
     }
   }
 
