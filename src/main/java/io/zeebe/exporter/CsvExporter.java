@@ -34,13 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.slf4j.Logger;
 
 public class CsvExporter implements Exporter {
 
   private static final String DELAY_KEY = "delay";
-  private static final long DEFAULT_DELAY = 60 * 100;
+  private static final long DEFAULT_DELAY = 60 * 1000;
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
