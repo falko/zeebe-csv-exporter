@@ -25,7 +25,7 @@ public class ScheduledRecorder {
   private final int delay;
 
   private Timer timer;
-  private final Map<Long, List<TimeRecord>> completed = new ConcurrentHashMap<>();
+  private final Map<Long, List<TimeRecord>> traces = new ConcurrentHashMap<>();
   private final Analyzer analyzer;
 
   public ScheduledRecorder(final int delay, final Analyzer analyzer) {
@@ -33,8 +33,8 @@ public class ScheduledRecorder {
     this.analyzer = analyzer;
   }
 
-  public void addCompleted(final Long key, final List<TimeRecord> tracesByElementInstanceKey) {
-    completed.put(key, tracesByElementInstanceKey);
+  public void addTrace(final Long key, final List<TimeRecord> tracesByElementInstanceKey) {
+    traces.put(key, tracesByElementInstanceKey);
   }
 
   public void start() {
@@ -44,14 +44,7 @@ public class ScheduledRecorder {
           @Override
           public void run() {
             final Map<Long, List<TimeRecord>> copy = copyAndClear();
-            // We're looking for an entire period of time here... if we
-            // have the necessity to evaluate instance by instance, then
-            // the list below should be removed.
-            final List<TimeRecord> trace = new ArrayList<>();
-            for (final Map.Entry<Long, List<TimeRecord>> entry : copy.entrySet()) {
-              trace.addAll(entry.getValue());
-            }
-            analyzer.analyze(trace);
+            analyzer.analyze(copy);
           }
         },
         delay, // time to start to display the data
@@ -66,8 +59,8 @@ public class ScheduledRecorder {
   // We're removing just the keys that are being moved
   // to the log file
   private Map<Long, List<TimeRecord>> copyAndClear() {
-    final Map<Long, List<TimeRecord>> copy = new HashMap<>(completed);
-    completed.keySet().removeAll(copy.keySet());
+    final Map<Long, List<TimeRecord>> copy = new HashMap<>(traces);
+    traces.keySet().removeAll(copy.keySet());
     return copy;
   }
 }
