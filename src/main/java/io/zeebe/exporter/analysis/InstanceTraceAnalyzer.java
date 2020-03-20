@@ -15,11 +15,13 @@
  */
 package io.zeebe.exporter.analysis;
 
-import static java.util.Map.Entry;
-
 import io.zeebe.exporter.TimeAggregate;
 import io.zeebe.exporter.record.TimeRecord;
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.slf4j.Logger;
 
 public class InstanceTraceAnalyzer implements Analyzer {
@@ -34,7 +36,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   @Override
-  public void analyze(final Map<Long, List<TimeRecord>> traces) { // TODO simplify to a list of lists
+  public void analyze(final Map<Long, List<TimeRecord>> traces) {
     for (final Entry<Long, List<TimeRecord>> entry : traces.entrySet()) {
       final List<TimeRecord> trace = entry.getValue();
       if (trace.isEmpty()) {
