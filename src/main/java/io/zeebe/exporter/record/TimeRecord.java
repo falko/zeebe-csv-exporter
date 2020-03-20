@@ -49,10 +49,6 @@ public class TimeRecord {
     this.cloneValue(record);
   }
 
-  public RecordType getRecordType() {
-    return recordType;
-  }
-
   public ValueType getValueType() {
     return valueType;
   }
@@ -67,10 +63,6 @@ public class TimeRecord {
 
   public long getTimestamp() {
     return timestamp;
-  }
-
-  public BpmnElementType getBpmnElementType() {
-    return bpmnElementType;
   }
 
   public long getElementInstanceKey() {

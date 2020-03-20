@@ -34,8 +34,12 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   @Override
-  public void analyze(final List<TimeRecord> trace) {
-    if (!trace.isEmpty()) {
+  public void analyze(final Map<Long, List<TimeRecord>> traces) {
+    for (final Entry<Long, List<TimeRecord>> entry : traces.entrySet()) {
+      final List<TimeRecord> trace = entry.getValue();
+      if (trace.isEmpty()) {
+        continue;
+      }
       trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp));
 
       for (final TimeRecord currRecord : trace) {

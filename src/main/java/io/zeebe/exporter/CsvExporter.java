@@ -38,7 +38,7 @@ import java.util.Map.Entry;
 public class CsvExporter implements Exporter {
 
   private static final String DELAY_KEY = "delay";
-  private static final long DEFAULT_DELAY = 60 * 1000;
+  private static final long DEFAULT_DELAY = 60 * 100;
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
@@ -88,12 +88,11 @@ public class CsvExporter implements Exporter {
       case WORKFLOW_INSTANCE:
         if (clone.isServiceTask()) {
           trace = tracesByElementInstanceKey.get(key);
+          trace.add(clone);
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             tracesByElementInstanceKey.remove(key);
-            scheduledRecorder.addCompleted(key, trace);
+            scheduledRecorder.addTrace(key, trace);
           }
-        } else {
-          trace = null; // other BPMN elements are ignored
         }
         break;
       case JOB:
@@ -107,6 +106,9 @@ public class CsvExporter implements Exporter {
           if (intent == JobIntent.COMPLETED) {
             tracesByJobKey.remove(key);
           }
+        }
+        if (trace != null) { // TODO: talk with Falko about it... sometimes this trace is null
+          trace.add(clone);
         }
         break;
       case JOB_BATCH:
@@ -124,12 +126,9 @@ public class CsvExporter implements Exporter {
         } else {
           throw new UnsupportedOperationException();
         }
-        return;
+        break;
       default:
         throw new UnsupportedOperationException();
-    }
-    if (trace != null) {
-      trace.add(clone);
     }
   }
 
