@@ -20,16 +20,24 @@ import static java.util.Map.Entry;
 import io.zeebe.exporter.TimeAggregate;
 import io.zeebe.exporter.record.TimeRecord;
 import java.util.*;
+import org.slf4j.Logger;
 
 public class InstanceTraceAnalyzer implements Analyzer {
 
+  private final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
   private static final String CSV_HEADER = "Event;AVG;Count;Min;Max;MSSD";
+
+  private final Logger logger;
+
+  public InstanceTraceAnalyzer(final Logger logger) {
+    this.logger = logger;
+  }
 
   @Override
   public void analyze(final List<TimeRecord> trace) {
     if (!trace.isEmpty()) {
       trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp));
-      final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
+
       for (final TimeRecord currRecord : trace) {
         final int nextIndex = trace.indexOf(currRecord) + 1;
         // Ignore all COMMAND:JOB_BATCH:ACTIVATE to process
@@ -44,17 +52,15 @@ public class InstanceTraceAnalyzer implements Analyzer {
           this.pushTimeDiff(timeDiffCache, currRecord, nextRecord);
         }
       }
-      // We're waiting until the end so every event can be
-      // aggregated. If we display the data in the previous
-      // loop, we will duplicate each event type
-      this.showData(timeDiffCache);
     }
+    // Show processed data until now
+    this.showData(timeDiffCache);
   }
 
   private void showData(final Map<String, TimeAggregate> timeDiffCache) {
-    System.out.println(CSV_HEADER);
+    logger.info(CSV_HEADER);
     for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
-      System.out.println(entry.getValue().toCsvRow());
+      logger.info(entry.getValue().toCsvRow());
     }
   }
 

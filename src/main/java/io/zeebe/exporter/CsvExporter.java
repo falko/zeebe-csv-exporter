@@ -62,7 +62,8 @@ public class CsvExporter implements Exporter {
         });
     final int delay = this.getDelay(context);
 
-    this.scheduledRecorder = new ScheduledRecorder(delay, new InstanceTraceAnalyzer());
+    this.scheduledRecorder =
+        new ScheduledRecorder(delay, new InstanceTraceAnalyzer(context.getLogger()));
     this.tracesByElementInstanceKey = new HashMap<>();
     this.tracesByJobKey = new HashMap<>();
   }
