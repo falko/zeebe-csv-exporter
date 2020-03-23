@@ -17,15 +17,18 @@ package io.zeebe.exporter;
 
 public class TimeAggregate {
 
+  private final String currRecordName;
+  private final String nextRecordName;
   private double sumTime;
   private double minTime;
   private double maxTime;
   private double varTime;
-  private double count;
-  private String recordName;
+  private int count;
 
-  public TimeAggregate(String recordName, double time) {
-    this.recordName = recordName;
+  public TimeAggregate(
+      final String currRecordName, final String nextRecordName, final double time) {
+    this.currRecordName = currRecordName;
+    this.nextRecordName = nextRecordName;
     sumTime = minTime = maxTime = time;
     varTime = Math.pow(time * -1, 2);
     count = 1;
@@ -43,12 +46,18 @@ public class TimeAggregate {
     ++count;
   }
 
-  public double getMssd() {
+  private double getMSSD() {
     return Math.sqrt(varTime / (count * 2));
   }
 
-  public String toCsvRow() {
-    return recordName
+  private String getMSSDText() {
+    return String.format("%f", this.getMSSD());
+  }
+
+  public String asCSV() {
+    return currRecordName
+        + ";"
+        + nextRecordName
         + ";"
         + sumTime / count
         + ";"
@@ -58,12 +67,14 @@ public class TimeAggregate {
         + ";"
         + maxTime
         + ";"
-        + String.format("%f", this.getMssd());
+        + this.getMSSDText();
   }
 
   @Override
   public String toString() {
-    return recordName
+    return currRecordName
+        + " next="
+        + nextRecordName
         + " avg="
         + sumTime / count
         + ", count="
@@ -73,30 +84,6 @@ public class TimeAggregate {
         + ", max="
         + maxTime
         + ", mssd="
-        + String.format("%f", this.getMssd());
-  }
-
-  public double getSumTime() {
-    return sumTime;
-  }
-
-  public double getMinTime() {
-    return minTime;
-  }
-
-  public double getMaxTime() {
-    return maxTime;
-  }
-
-  public double getVarTime() {
-    return varTime;
-  }
-
-  public double getCount() {
-    return count;
-  }
-
-  public String getRecordName() {
-    return recordName;
+        + this.getMSSDText();
   }
 }

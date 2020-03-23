@@ -43,6 +43,7 @@ public class CsvExporter implements Exporter {
   private static final List<ValueType> EXPORT_VALUE_TYPE =
       Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
 
+  private Controller controller;
   private ScheduledRecorder scheduledRecorder;
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
   private Map<Long, List<TimeRecord>> tracesByJobKey;
@@ -72,6 +73,7 @@ public class CsvExporter implements Exporter {
 
   @Override
   public void open(final Controller controller) {
+    this.controller = controller;
     scheduledRecorder.start();
   }
 
@@ -94,6 +96,7 @@ public class CsvExporter implements Exporter {
    */
   @Override
   public void export(final Record record) {
+    this.controller.updateLastExportedRecordPosition(record.getPosition());
     final TimeRecord clone = new TimeRecord(record);
     List<TimeRecord> trace;
     long key = clone.getKey();

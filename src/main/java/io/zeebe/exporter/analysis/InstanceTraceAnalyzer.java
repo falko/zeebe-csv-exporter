@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 public class InstanceTraceAnalyzer implements Analyzer {
 
   private final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
-  private static final String CSV_HEADER = "Event;AVG;Count;Min;Max;MSSD";
+  private static final String CSV_HEADER = "Event;Next;AVG;Count;Min;Max;MSSD";
 
   private final Logger logger;
 
@@ -67,7 +67,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
     if (!timeDiffCache.isEmpty()) {
       logger.info(CSV_HEADER);
       for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
-        logger.info(entry.getValue().toCsvRow());
+        logger.info(entry.getValue().asCSV());
       }
     }
   }
@@ -82,15 +82,43 @@ public class InstanceTraceAnalyzer implements Analyzer {
       final TimeRecord currRecord,
       final int currIndex) {
     if (currRecord.getWorkerId() != null) {
-      for (int index = currIndex; index > 0; index--) {
-        final TimeRecord candidateRecord = trace.get(index);
-        if (candidateRecord.isCommandJobBatchActivate()
-            && candidateRecord.getWorkerId() != null
-            && candidateRecord.getWorkerId().equals(currRecord.getWorkerId())) {
-          final TimeRecord nextRecord = trace.get(index + 1);
-          this.pushTimeDiff(timeDiffCache, candidateRecord, nextRecord);
-          break;
-        }
+      boolean backward = this.findBackward(timeDiffCache, trace, currRecord, currIndex);
+      if (!backward) {
+        this.findForehead(timeDiffCache, trace, currRecord, currIndex);
+      }
+    }
+  }
+
+  private boolean findBackward(
+      final Map<String, TimeAggregate> timeDiffCache,
+      final List<TimeRecord> trace,
+      final TimeRecord currRecord,
+      final int currIndex) {
+    for (int index = currIndex; index >= 0; index--) {
+      final TimeRecord candidateRecord = trace.get(index);
+      if (candidateRecord.isCommandJobBatchActivate()
+          && candidateRecord.getWorkerId() != null
+          && candidateRecord.getWorkerId().equals(currRecord.getWorkerId())) {
+        this.pushTimeDiff(timeDiffCache, candidateRecord, currRecord);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void findForehead(
+      final Map<String, TimeAggregate> timeDiffCache,
+      final List<TimeRecord> trace,
+      final TimeRecord currRecord,
+      final int currIndex) {
+    for (int index = currIndex + 1; index < trace.size(); index++) {
+      final TimeRecord candidateRecord = trace.get(index);
+      if (candidateRecord.isCommandJobBatchActivate()
+          && candidateRecord.getWorkerId() != null
+          && candidateRecord.getWorkerId().equals(currRecord.getWorkerId())) {
+        this.pushTimeDiff(timeDiffCache, candidateRecord, currRecord);
+        logger.error("Should never be here... but it is => " + currRecord);
+        break;
       }
     }
   }
@@ -100,13 +128,15 @@ public class InstanceTraceAnalyzer implements Analyzer {
       final Map<String, TimeAggregate> cache,
       final TimeRecord currRecord,
       final TimeRecord nextRecord) {
-    final String recordName = currRecord.getRecordName();
-    final long time = nextRecord.getTimestamp() - currRecord.getTimestamp();
-    if (cache.containsKey(recordName)) {
-      final TimeAggregate timeAggregate = cache.get(recordName);
+    final String currRecordName = currRecord.getRecordName();
+    final String nextRecordName = nextRecord.getRecordName();
+    final long time = Math.abs(nextRecord.getTimestamp() - currRecord.getTimestamp());
+    if (cache.containsKey(currRecordName)) {
+      final TimeAggregate timeAggregate = cache.get(currRecordName);
       timeAggregate.add(time);
     } else {
-      cache.put(recordName, new TimeAggregate(recordName, time));
+      final TimeAggregate timeAggregate = new TimeAggregate(currRecordName, nextRecordName, time);
+      cache.put(currRecordName, timeAggregate);
     }
   }
 }
