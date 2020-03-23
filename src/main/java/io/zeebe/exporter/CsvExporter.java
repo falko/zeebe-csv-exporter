@@ -65,8 +65,7 @@ public class CsvExporter implements Exporter {
     final int delay = this.getDelay(context);
 
     logger = context.getLogger();
-    this.scheduledRecorder =
-        new ScheduledRecorder(delay, new InstanceTraceAnalyzer(logger));
+    this.scheduledRecorder = new ScheduledRecorder(delay, new InstanceTraceAnalyzer(logger));
     this.tracesByElementInstanceKey = new HashMap<>();
     this.tracesByJobKey = new HashMap<>();
   }
@@ -76,9 +75,10 @@ public class CsvExporter implements Exporter {
     scheduledRecorder.start();
   }
 
-  
   /**
    * Expected order of records per service task:
+   *
+   * <pre>{@code
    *  1. EVENT:WORKFLOW_INSTANCE:ELEMENT_ACTIVATING:SERVICE_TASK
    *  2. EVENT:WORKFLOW_INSTANCE:ELEMENT_ACTIVATED:SERVICE_TASK
    *  3. COMMAND:JOB:CREATE
@@ -89,7 +89,8 @@ public class CsvExporter implements Exporter {
    *  8. COMMAND:JOB:COMPLETE
    *  9. EVENT:JOB:COMPLETED
    * 10. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETING:SERVICE_TASK
-   * 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK 
+   * 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
+   * }</pre>
    */
   @Override
   public void export(final Record record) {
@@ -97,7 +98,8 @@ public class CsvExporter implements Exporter {
     List<TimeRecord> trace;
     long key = clone.getKey();
     Intent intent = clone.getIntent();
-    if (clone.isServiceTask() && clone.isActivating()) { // 1. EVENT:WORKFLOW_INSTANCE:ELEMENT_ACTIVATING:SERVICE_TASK
+    if (clone.isServiceTask() && clone.isActivating()) {
+      // 1. EVENT:WORKFLOW_INSTANCE:ELEMENT_ACTIVATING:SERVICE_TASK
       trace = new ArrayList<>();
       tracesByElementInstanceKey.put(key, trace);
     }
@@ -111,9 +113,10 @@ public class CsvExporter implements Exporter {
           // 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
           trace = tracesByElementInstanceKey.get(key);
           trace.add(clone);
-          if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) { // 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
+          if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
+            // 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
             tracesByElementInstanceKey.remove(key);
-            scheduledRecorder.addTrace(key, trace);
+            scheduledRecorder.offer(trace);
           }
         }
         break;
@@ -128,23 +131,26 @@ public class CsvExporter implements Exporter {
           // 8. COMMAND:JOB:COMPLETE
           // 9. EVENT:JOB:COMPLETED
           trace = tracesByJobKey.get(key);
-          if (intent == JobIntent.COMPLETED) { // 9. EVENT:JOB:COMPLETED
+          if (intent == JobIntent.COMPLETED) {
+            // 9. EVENT:JOB:COMPLETED
             tracesByJobKey.remove(key);
           }
         }
-        if (trace != null) { // TODO: talk with Falko about it... sometimes this trace is null
+        if (trace != null) {
           trace.add(clone);
         } else {
           logger.error("No trace found for record: " + clone);
         }
         break;
       case JOB_BATCH:
-        if (intent == JobBatchIntent.ACTIVATE) { // 5. COMMAND:JOB_BATCH:ACTIVATE
+        if (intent == JobBatchIntent.ACTIVATE) {
+          // 5. COMMAND:JOB_BATCH:ACTIVATE
           for (Entry<Long, List<TimeRecord>> entry : tracesByJobKey.entrySet()) {
             trace = entry.getValue();
             trace.add(clone);
           }
         } else if (intent == JobBatchIntent.ACTIVATED) {
+          // 7. EVENT:JOB_BATCH:ACTIVATED
           List<Long> jobKeys = clone.getJobKeys();
           for (Long jobKey : jobKeys) {
             trace = tracesByJobKey.get(jobKey);

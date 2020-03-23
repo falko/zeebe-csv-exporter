@@ -15,11 +15,13 @@
  */
 package io.zeebe.exporter.analysis;
 
-import static java.util.Map.Entry;
-
 import io.zeebe.exporter.TimeAggregate;
 import io.zeebe.exporter.record.TimeRecord;
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.slf4j.Logger;
 
 public class InstanceTraceAnalyzer implements Analyzer {
@@ -34,9 +36,8 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   @Override
-  public void analyze(final Map<Long, List<TimeRecord>> traces) { // TODO simplify to a list of lists
-    for (final Entry<Long, List<TimeRecord>> entry : traces.entrySet()) {
-      final List<TimeRecord> trace = entry.getValue();
+  public void analyze(final List<List<TimeRecord>> traces) {
+    for (final List<TimeRecord> trace : traces) {
       if (trace.isEmpty()) {
         logger.error("Unexpected empty trace in analysis");
         continue;
@@ -63,9 +64,11 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   private void showData(final Map<String, TimeAggregate> timeDiffCache) {
-    logger.info(CSV_HEADER);
-    for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
-      logger.info(entry.getValue().toCsvRow());
+    if (!timeDiffCache.isEmpty()) {
+      logger.info(CSV_HEADER);
+      for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
+        logger.info(entry.getValue().toCsvRow());
+      }
     }
   }
 

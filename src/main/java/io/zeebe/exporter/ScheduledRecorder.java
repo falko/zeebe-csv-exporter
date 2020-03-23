@@ -18,14 +18,14 @@ package io.zeebe.exporter;
 import io.zeebe.exporter.analysis.Analyzer;
 import io.zeebe.exporter.record.TimeRecord;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class ScheduledRecorder {
 
   private final int delay;
 
   private Timer timer;
-  private final Map<Long, List<TimeRecord>> traces = new ConcurrentHashMap<>();
+  private final LinkedBlockingQueue<List<TimeRecord>> tracesQueue = new LinkedBlockingQueue<>();
   private final Analyzer analyzer;
 
   public ScheduledRecorder(final int delay, final Analyzer analyzer) {
@@ -33,8 +33,8 @@ public class ScheduledRecorder {
     this.analyzer = analyzer;
   }
 
-  public void addTrace(final Long key, final List<TimeRecord> tracesByElementInstanceKey) {
-    traces.put(key, tracesByElementInstanceKey);
+  public void offer(final List<TimeRecord> traceByInstanceKey) {
+    tracesQueue.offer(traceByInstanceKey);
   }
 
   public void start() {
@@ -43,8 +43,9 @@ public class ScheduledRecorder {
         new TimerTask() {
           @Override
           public void run() {
-            final Map<Long, List<TimeRecord>> copy = copyAndClear();
-            analyzer.analyze(copy);
+            final List<List<TimeRecord>> traces = new ArrayList<>();
+            tracesQueue.drainTo(traces);
+            analyzer.analyze(traces);
           }
         },
         delay, // time to start to display the data
@@ -54,13 +55,5 @@ public class ScheduledRecorder {
   public void stop() {
     timer.cancel();
     timer = null;
-  }
-
-  // We're removing just the keys that are being moved
-  // to the log file
-  private Map<Long, List<TimeRecord>> copyAndClear() {
-    final Map<Long, List<TimeRecord>> copy = new HashMap<>(traces);
-    traces.keySet().removeAll(copy.keySet());
-    return copy;
   }
 }

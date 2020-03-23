@@ -17,8 +17,7 @@ package io.zeebe.exporter.analysis;
 
 import io.zeebe.exporter.record.TimeRecord;
 import java.util.List;
-import java.util.Map;
 
 public interface Analyzer {
-  void analyze(Map<Long, List<TimeRecord>> traces);
+  void analyze(List<List<TimeRecord>> traces);
 }
