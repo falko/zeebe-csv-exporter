@@ -18,63 +18,46 @@ package io.zeebe.exporter;
 import io.zeebe.exporter.analysis.InstanceTraceAnalyzer;
 import io.zeebe.exporter.api.Exporter;
 import io.zeebe.exporter.api.context.Context;
-import io.zeebe.exporter.api.context.Context.RecordFilter;
 import io.zeebe.exporter.api.context.Controller;
+import io.zeebe.exporter.config.Configuration;
+import io.zeebe.exporter.config.LatencyFilter;
 import io.zeebe.exporter.record.TimeRecord;
 import io.zeebe.protocol.record.Record;
-import io.zeebe.protocol.record.RecordType;
 import io.zeebe.protocol.record.ValueType;
 import io.zeebe.protocol.record.intent.Intent;
 import io.zeebe.protocol.record.intent.JobBatchIntent;
 import io.zeebe.protocol.record.intent.JobIntent;
 import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.slf4j.Logger;
 
-public class CsvExporter implements Exporter {
-
-  private static final String DELAY_KEY = "delay";
-  private static final long DEFAULT_DELAY = 60 * 1000;
-  private static final List<ValueType> EXPORT_VALUE_TYPE =
-      Arrays.asList(ValueType.JOB, ValueType.WORKFLOW_INSTANCE, ValueType.JOB_BATCH);
+public class LatencyExporter implements Exporter {
 
   private Controller controller;
-  private ScheduledRecorder scheduledRecorder;
+  private TimedRecorder timedRecorder;
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
   private Map<Long, List<TimeRecord>> tracesByJobKey;
   private Logger logger;
 
   @Override
   public void configure(final Context context) {
-    context.setFilter(
-        new RecordFilter() {
-          @Override
-          public boolean acceptType(RecordType recordType) {
-            return true;
-          }
-
-          @Override
-          public boolean acceptValue(ValueType valueType) {
-            return EXPORT_VALUE_TYPE.contains(valueType);
-          }
-        });
-    final int delay = this.getDelay(context);
-
-    logger = context.getLogger();
-    this.scheduledRecorder = new ScheduledRecorder(delay, new InstanceTraceAnalyzer(logger));
+    final Configuration configuration = new Configuration(context);
+    this.logger = context.getLogger();
+    this.timedRecorder = new TimedRecorder(configuration, new InstanceTraceAnalyzer(logger));
     this.tracesByElementInstanceKey = new HashMap<>();
     this.tracesByJobKey = new HashMap<>();
+
+    context.setFilter(new LatencyFilter());
   }
 
   @Override
   public void open(final Controller controller) {
     this.controller = controller;
-    scheduledRecorder.start();
+    timedRecorder.start();
   }
 
   /**
@@ -119,7 +102,7 @@ public class CsvExporter implements Exporter {
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             // 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
             tracesByElementInstanceKey.remove(key);
-            scheduledRecorder.offer(trace);
+            timedRecorder.offer(trace);
           }
         }
         break;
@@ -170,15 +153,6 @@ public class CsvExporter implements Exporter {
 
   @Override
   public void close() {
-    scheduledRecorder.stop();
-  }
-
-  private int getDelay(final Context context) {
-    final Map<String, Object> arguments = context.getConfiguration().getArguments();
-    long delay = DEFAULT_DELAY;
-    if (arguments != null && arguments.containsKey(DELAY_KEY)) {
-      delay = (Long) arguments.get(DELAY_KEY);
-    }
-    return (int) delay;
+    timedRecorder.stop();
   }
 }

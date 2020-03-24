@@ -1,4 +1,4 @@
-# Zeebe CSV Exporter
+# Zeebe Latency Exporter
 
 A simple aggregating [CSV] [exporter] for [Zeebe].
 
@@ -12,13 +12,14 @@ folder
 2. Add the exporter configuration to the `conf/zeebe.cfg.toml` to enable the
    exporter
    ```
-   [[exporters]]
-   id = "csv"
-   className = "io.zeebe.exporter.CsvExporter"
-
-   [exporters.args]
-   # output path to write csv files
-   output = "csv/"
+    [[exporters]]
+    id = "latency"
+    className = "io.zeebe.exporter.LatencyExporter"
+    
+    [exporters.args]
+    # output path to write latency csv files
+    output = "latency/"
+    fixedRate = 10
    ```
 
 ## Example

@@ -16,20 +16,22 @@
 package io.zeebe.exporter;
 
 import io.zeebe.exporter.analysis.Analyzer;
+import io.zeebe.exporter.config.Configuration;
 import io.zeebe.exporter.record.TimeRecord;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class ScheduledRecorder {
+public class TimedRecorder {
 
-  private final int delay;
-
-  private Timer timer;
-  private final LinkedBlockingQueue<List<TimeRecord>> tracesQueue = new LinkedBlockingQueue<>();
+  private final Configuration configuration;
+  private final Timer timer;
+  private final LinkedBlockingQueue<List<TimeRecord>> tracesQueue;
   private final Analyzer analyzer;
 
-  public ScheduledRecorder(final int delay, final Analyzer analyzer) {
-    this.delay = delay;
+  public TimedRecorder(final Configuration configuration, final Analyzer analyzer) {
+    this.configuration = configuration;
+    this.timer = new Timer();
+    this.tracesQueue = new LinkedBlockingQueue<>();
     this.analyzer = analyzer;
   }
 
@@ -38,7 +40,6 @@ public class ScheduledRecorder {
   }
 
   public void start() {
-    timer = new Timer();
     timer.scheduleAtFixedRate(
         new TimerTask() {
           @Override
@@ -48,12 +49,11 @@ public class ScheduledRecorder {
             analyzer.analyze(traces);
           }
         },
-        delay, // time to start to display the data
-        delay); // delay time between each display
+        0,
+        configuration.getFixedRate());
   }
 
   public void stop() {
     timer.cancel();
-    timer = null;
   }
 }

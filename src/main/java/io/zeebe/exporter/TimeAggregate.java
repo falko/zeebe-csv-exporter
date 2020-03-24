@@ -50,7 +50,7 @@ public class TimeAggregate {
     return Math.sqrt(varTime / (count * 2));
   }
 
-  private String getMSSDText() {
+  public String getMSSDText() {
     return String.format("%f", this.getMSSD());
   }
 

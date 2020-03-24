@@ -22,7 +22,8 @@ public class TimeAggregateTest {
 
   @Test
   public void testMSSD() {
-    final TimeAggregate timeAggregate = new TimeAggregate("SOME_RECORD", 0.500 - 0.480);
+    final TimeAggregate timeAggregate =
+        new TimeAggregate("SOME_RECORD", "SOME_RECORD_2", 0.500 - 0.480);
     timeAggregate.add(0.480 - 0.490);
     timeAggregate.add(0.490 - 0.500);
     timeAggregate.add(0.500 - 0.505);
@@ -33,6 +34,6 @@ public class TimeAggregateTest {
     timeAggregate.add(0.500 - 0.479);
     timeAggregate.add(0.479 - 0.490);
     timeAggregate.add(0.490 - 0.510);
-    Assert.assertEquals("0.008995", String.format("%f", timeAggregate.getMssd()));
+    Assert.assertEquals("0.008995", timeAggregate.getMSSDText());
   }
 }
