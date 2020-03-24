@@ -21,7 +21,8 @@ import io.zeebe.exporter.api.context.Context;
 import io.zeebe.exporter.api.context.Controller;
 import io.zeebe.exporter.config.Configuration;
 import io.zeebe.exporter.config.LatencyFilter;
-import io.zeebe.exporter.record.TimeRecord;
+import io.zeebe.exporter.time.TimeRecord;
+import io.zeebe.exporter.time.TimeRecorder;
 import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.ValueType;
 import io.zeebe.protocol.record.intent.Intent;
@@ -35,10 +36,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.slf4j.Logger;
 
-public class LatencyExporter implements Exporter {
+public class CommandEventLatencyExporter implements Exporter {
 
   private Controller controller;
-  private TimedRecorder timedRecorder;
+  private TimeRecorder timeRecorder;
   private Map<Long, List<TimeRecord>> tracesByElementInstanceKey;
   private Map<Long, List<TimeRecord>> tracesByJobKey;
   private Logger logger;
@@ -47,7 +48,7 @@ public class LatencyExporter implements Exporter {
   public void configure(final Context context) {
     final Configuration configuration = new Configuration(context);
     this.logger = context.getLogger();
-    this.timedRecorder = new TimedRecorder(configuration, new InstanceTraceAnalyzer(logger));
+    this.timeRecorder = new TimeRecorder(configuration, new InstanceTraceAnalyzer(logger));
     this.tracesByElementInstanceKey = new HashMap<>();
     this.tracesByJobKey = new HashMap<>();
 
@@ -57,7 +58,7 @@ public class LatencyExporter implements Exporter {
   @Override
   public void open(final Controller controller) {
     this.controller = controller;
-    timedRecorder.start();
+    timeRecorder.start();
   }
 
   /**
@@ -102,7 +103,7 @@ public class LatencyExporter implements Exporter {
           if (intent == WorkflowInstanceIntent.ELEMENT_COMPLETED) {
             // 11. EVENT:WORKFLOW_INSTANCE:ELEMENT_COMPLETED:SERVICE_TASK
             tracesByElementInstanceKey.remove(key);
-            timedRecorder.offer(trace);
+            timeRecorder.offer(trace);
           }
         }
         break;
@@ -153,6 +154,6 @@ public class LatencyExporter implements Exporter {
 
   @Override
   public void close() {
-    timedRecorder.stop();
+    timeRecorder.stop();
   }
 }

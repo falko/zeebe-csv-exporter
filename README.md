@@ -14,11 +14,11 @@ folder
    ```
     [[exporters]]
     id = "latency"
-    className = "io.zeebe.exporter.LatencyExporter"
+    className = "io.zeebe.exporter.CommandEventLatencyExporter"
     
     [exporters.args]
-    # output path to write latency csv files
-    output = "latency/"
+    # output path to write command event latency csv files
+    output = "command-event-latency/"
     fixedRate = 10
    ```
 

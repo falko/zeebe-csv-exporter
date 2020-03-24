@@ -25,7 +25,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 // TODO: write some tests
-public class LatencyExporterIT {
+public class CommandEventLatencyExporterIT {
 
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -33,9 +33,10 @@ public class LatencyExporterIT {
 
   @Before
   public void setUp() {
-    final Configuration configuration = new Configuration("latency/", 1);
+    final Configuration configuration = new Configuration("command-event-latency/", 1);
     integrationRule =
-        new ExporterIntegrationRule().configure("latency", LatencyExporter.class, configuration);
+        new ExporterIntegrationRule()
+            .configure("latency", CommandEventLatencyExporter.class, configuration);
     integrationRule.start();
   }
 

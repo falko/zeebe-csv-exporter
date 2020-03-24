@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class Configuration {
 
-  private static final String DEFAULT_OUTPUT = "latency/";
+  private static final String DEFAULT_OUTPUT = "command-event-latency/";
   private static final int DEFAULT_FIXED_RATE = 60;
 
   private static final String OUTPUT = "output";

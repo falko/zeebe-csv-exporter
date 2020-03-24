@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.exporter;
+package io.zeebe.exporter.time;
 
 import io.zeebe.exporter.analysis.Analyzer;
 import io.zeebe.exporter.config.Configuration;
-import io.zeebe.exporter.record.TimeRecord;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class TimedRecorder {
+public class TimeRecorder {
 
   private final Configuration configuration;
   private final Timer timer;
   private final LinkedBlockingQueue<List<TimeRecord>> tracesQueue;
   private final Analyzer analyzer;
 
-  public TimedRecorder(final Configuration configuration, final Analyzer analyzer) {
+  public TimeRecorder(final Configuration configuration, final Analyzer analyzer) {
     this.configuration = configuration;
     this.timer = new Timer();
     this.tracesQueue = new LinkedBlockingQueue<>();

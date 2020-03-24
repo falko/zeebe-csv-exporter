@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.exporter.record;
+package io.zeebe.exporter.time;
 
 import io.zeebe.protocol.record.Record;
 import io.zeebe.protocol.record.RecordType;

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.exporter;
+package io.zeebe.exporter.time;
 
-public class TimeAggregate {
+public class TimeAggregation {
 
   private final String currRecordName;
   private final String nextRecordName;
@@ -25,7 +25,7 @@ public class TimeAggregate {
   private double varTime;
   private int count;
 
-  public TimeAggregate(
+  public TimeAggregation(
       final String currRecordName, final String nextRecordName, final double time) {
     this.currRecordName = currRecordName;
     this.nextRecordName = nextRecordName;

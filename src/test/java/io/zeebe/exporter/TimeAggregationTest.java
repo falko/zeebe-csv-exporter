@@ -15,25 +15,26 @@
  */
 package io.zeebe.exporter;
 
+import io.zeebe.exporter.time.TimeAggregation;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TimeAggregateTest {
+public class TimeAggregationTest {
 
   @Test
   public void testMSSD() {
-    final TimeAggregate timeAggregate =
-        new TimeAggregate("SOME_RECORD", "SOME_RECORD_2", 0.500 - 0.480);
-    timeAggregate.add(0.480 - 0.490);
-    timeAggregate.add(0.490 - 0.500);
-    timeAggregate.add(0.500 - 0.505);
-    timeAggregate.add(0.505 - 0.500);
-    timeAggregate.add(0.500 - 0.490);
-    timeAggregate.add(0.490 - 0.498);
-    timeAggregate.add(0.498 - 0.500);
-    timeAggregate.add(0.500 - 0.479);
-    timeAggregate.add(0.479 - 0.490);
-    timeAggregate.add(0.490 - 0.510);
-    Assert.assertEquals("0.008995", timeAggregate.getMSSDText());
+    final TimeAggregation timeAggregation =
+        new TimeAggregation("SOME_RECORD", "SOME_RECORD_2", 0.500 - 0.480);
+    timeAggregation.add(0.480 - 0.490);
+    timeAggregation.add(0.490 - 0.500);
+    timeAggregation.add(0.500 - 0.505);
+    timeAggregation.add(0.505 - 0.500);
+    timeAggregation.add(0.500 - 0.490);
+    timeAggregation.add(0.490 - 0.498);
+    timeAggregation.add(0.498 - 0.500);
+    timeAggregation.add(0.500 - 0.479);
+    timeAggregation.add(0.479 - 0.490);
+    timeAggregation.add(0.490 - 0.510);
+    Assert.assertEquals("0.008995", timeAggregation.getMSSDText());
   }
 }

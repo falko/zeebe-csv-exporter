@@ -15,8 +15,8 @@
  */
 package io.zeebe.exporter.analysis;
 
-import io.zeebe.exporter.TimeAggregate;
-import io.zeebe.exporter.record.TimeRecord;
+import io.zeebe.exporter.time.TimeAggregation;
+import io.zeebe.exporter.time.TimeRecord;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 
 public class InstanceTraceAnalyzer implements Analyzer {
 
-  private final Map<String, TimeAggregate> timeDiffCache = new LinkedHashMap<>();
+  private final Map<String, TimeAggregation> timeDiffCache = new LinkedHashMap<>();
   private static final String CSV_HEADER = "Event;Next;AVG;Count;Min;Max;MSSD";
 
   private final Logger logger;
@@ -63,10 +63,10 @@ public class InstanceTraceAnalyzer implements Analyzer {
     this.showData(timeDiffCache);
   }
 
-  private void showData(final Map<String, TimeAggregate> timeDiffCache) {
+  private void showData(final Map<String, TimeAggregation> timeDiffCache) {
     if (!timeDiffCache.isEmpty()) {
       logger.info(CSV_HEADER);
-      for (final Entry<String, TimeAggregate> entry : timeDiffCache.entrySet()) {
+      for (final Entry<String, TimeAggregation> entry : timeDiffCache.entrySet()) {
         logger.info(entry.getValue().asCSV());
       }
     }
@@ -77,7 +77,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
   // EVENT:JOB:ACTIVATED. It starts in the same index
   // of the EVENT:JOB:ACTIVATED event
   private void pushJobBatchTimeDiff(
-      final Map<String, TimeAggregate> timeDiffCache,
+      final Map<String, TimeAggregation> timeDiffCache,
       final List<TimeRecord> trace,
       final TimeRecord currRecord,
       final int currIndex) {
@@ -90,7 +90,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   private boolean findBackward(
-      final Map<String, TimeAggregate> timeDiffCache,
+      final Map<String, TimeAggregation> timeDiffCache,
       final List<TimeRecord> trace,
       final TimeRecord currRecord,
       final int currIndex) {
@@ -107,7 +107,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
   }
 
   private void findForehead(
-      final Map<String, TimeAggregate> timeDiffCache,
+      final Map<String, TimeAggregation> timeDiffCache,
       final List<TimeRecord> trace,
       final TimeRecord currRecord,
       final int currIndex) {
@@ -125,18 +125,19 @@ public class InstanceTraceAnalyzer implements Analyzer {
 
   // Just sum the values
   private void pushTimeDiff(
-      final Map<String, TimeAggregate> cache,
+      final Map<String, TimeAggregation> cache,
       final TimeRecord currRecord,
       final TimeRecord nextRecord) {
     final String currRecordName = currRecord.getRecordName();
     final String nextRecordName = nextRecord.getRecordName();
     final long time = Math.abs(nextRecord.getTimestamp() - currRecord.getTimestamp());
     if (cache.containsKey(currRecordName)) {
-      final TimeAggregate timeAggregate = cache.get(currRecordName);
-      timeAggregate.add(time);
+      final TimeAggregation timeAggregation = cache.get(currRecordName);
+      timeAggregation.add(time);
     } else {
-      final TimeAggregate timeAggregate = new TimeAggregate(currRecordName, nextRecordName, time);
-      cache.put(currRecordName, timeAggregate);
+      final TimeAggregation timeAggregation =
+          new TimeAggregation(currRecordName, nextRecordName, time);
+      cache.put(currRecordName, timeAggregation);
     }
   }
 }

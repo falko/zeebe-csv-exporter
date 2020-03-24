@@ -15,7 +15,7 @@
  */
 package io.zeebe.exporter.analysis;
 
-import io.zeebe.exporter.record.TimeRecord;
+import io.zeebe.exporter.time.TimeRecord;
 import java.util.List;
 
 public interface Analyzer {
