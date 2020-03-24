@@ -33,7 +33,7 @@ public class CommandEventLatencyExporterIT {
 
   @Before
   public void setUp() {
-    final Configuration configuration = new Configuration("command-event-latency/", 1);
+    final Configuration configuration = new Configuration("command-event-latency/", 1, false);
     integrationRule =
         new ExporterIntegrationRule()
             .configure("latency", CommandEventLatencyExporter.class, configuration);

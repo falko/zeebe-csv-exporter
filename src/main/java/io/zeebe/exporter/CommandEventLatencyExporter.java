@@ -48,7 +48,8 @@ public class CommandEventLatencyExporter implements Exporter {
   public void configure(final Context context) {
     final Configuration configuration = new Configuration(context);
     this.logger = context.getLogger();
-    this.timeRecorder = new TimeRecorder(configuration, new InstanceTraceAnalyzer(logger));
+    this.timeRecorder =
+        new TimeRecorder(configuration, new InstanceTraceAnalyzer(configuration, logger));
     this.tracesByElementInstanceKey = new HashMap<>();
     this.tracesByJobKey = new HashMap<>();
 

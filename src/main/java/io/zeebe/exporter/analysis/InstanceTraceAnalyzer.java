@@ -15,23 +15,26 @@
  */
 package io.zeebe.exporter.analysis;
 
+import static io.zeebe.exporter.writer.CsvFileWriter.CSV_HEADERS;
+
+import io.zeebe.exporter.config.Configuration;
 import io.zeebe.exporter.time.TimeAggregation;
 import io.zeebe.exporter.time.TimeRecord;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import io.zeebe.exporter.writer.CsvFileWriter;
+import io.zeebe.exporter.writer.CsvWriter;
+import java.util.*;
 import java.util.Map.Entry;
 import org.slf4j.Logger;
 
 public class InstanceTraceAnalyzer implements Analyzer {
 
   private final Map<String, TimeAggregation> timeDiffCache = new LinkedHashMap<>();
-  private static final String CSV_HEADER = "Event;Next;AVG;Count;Min;Max;MSSD";
 
+  private final Configuration configuration;
   private final Logger logger;
 
-  public InstanceTraceAnalyzer(final Logger logger) {
+  public InstanceTraceAnalyzer(final Configuration configuration, final Logger logger) {
+    this.configuration = configuration;
     this.logger = logger;
   }
 
@@ -60,14 +63,24 @@ public class InstanceTraceAnalyzer implements Analyzer {
       }
     }
     // Show processed data until now
-    this.showData(timeDiffCache);
+    this.write(timeDiffCache);
   }
 
-  private void showData(final Map<String, TimeAggregation> timeDiffCache) {
+  private void write(final Map<String, TimeAggregation> timeDiffCache) {
     if (!timeDiffCache.isEmpty()) {
-      logger.info(CSV_HEADER);
+      logger.info(String.join(";", CSV_HEADERS));
       for (final Entry<String, TimeAggregation> entry : timeDiffCache.entrySet()) {
-        logger.info(entry.getValue().asCSV());
+        final TimeAggregation timeAggregation = entry.getValue();
+        logger.info(timeAggregation.asCSV());
+      }
+      if (configuration.getCsvEnabled()) {
+        final CsvWriter csvWriter = new CsvFileWriter(configuration);
+        for (final Entry<String, TimeAggregation> entry : timeDiffCache.entrySet()) {
+          final TimeAggregation timeAggregation = entry.getValue();
+          if (configuration.getCsvEnabled()) {
+            csvWriter.write(timeAggregation);
+          }
+        }
       }
     }
   }
@@ -117,7 +130,6 @@ public class InstanceTraceAnalyzer implements Analyzer {
           && candidateRecord.getWorkerId() != null
           && candidateRecord.getWorkerId().equals(currRecord.getWorkerId())) {
         this.pushTimeDiff(timeDiffCache, candidateRecord, currRecord);
-        logger.error("Should never be here... but it is => " + currRecord);
         break;
       }
     }

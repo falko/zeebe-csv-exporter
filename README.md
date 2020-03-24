@@ -18,8 +18,9 @@ folder
     
     [exporters.args]
     # output path to write command event latency csv files
-    output = "command-event-latency/"
-    fixedRate = 10
+    csvOutput = "command-event-latency/"
+    csvEnabled = false
+    fixedRate = 60
    ```
 
 ## Example

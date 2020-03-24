@@ -15,6 +15,7 @@
  */
 package io.zeebe.exporter.time;
 
+@SuppressWarnings("unused")
 public class TimeAggregation {
 
   private final String currRecordName;
@@ -46,12 +47,32 @@ public class TimeAggregation {
     ++count;
   }
 
-  private double getMSSD() {
-    return Math.sqrt(varTime / (count * 2));
+  public String getCurrRecordName() {
+    return currRecordName;
   }
 
-  public String getMSSDText() {
-    return String.format("%f", this.getMSSD());
+  public String getNextRecordName() {
+    return nextRecordName;
+  }
+
+  public double getMinTime() {
+    return minTime;
+  }
+
+  public double getMaxTime() {
+    return maxTime;
+  }
+
+  public int getCount() {
+    return count;
+  }
+
+  public double getAVG() {
+    return sumTime / count;
+  }
+
+  public String getMSSD() {
+    return String.format("%f", Math.sqrt(varTime / (count * 2)));
   }
 
   public String asCSV() {
@@ -59,7 +80,7 @@ public class TimeAggregation {
         + ";"
         + nextRecordName
         + ";"
-        + sumTime / count
+        + this.getAVG()
         + ";"
         + count
         + ";"
@@ -67,7 +88,7 @@ public class TimeAggregation {
         + ";"
         + maxTime
         + ";"
-        + this.getMSSDText();
+        + this.getMSSD();
   }
 
   @Override
@@ -76,7 +97,7 @@ public class TimeAggregation {
         + " next="
         + nextRecordName
         + " avg="
-        + sumTime / count
+        + this.getAVG()
         + ", count="
         + count
         + ", min="
@@ -84,6 +105,6 @@ public class TimeAggregation {
         + ", max="
         + maxTime
         + ", mssd="
-        + this.getMSSDText();
+        + this.getMSSD();
   }
 }

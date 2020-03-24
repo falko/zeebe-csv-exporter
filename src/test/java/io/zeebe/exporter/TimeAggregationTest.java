@@ -35,6 +35,6 @@ public class TimeAggregationTest {
     timeAggregation.add(0.500 - 0.479);
     timeAggregation.add(0.479 - 0.490);
     timeAggregation.add(0.490 - 0.510);
-    Assert.assertEquals("0.008995", timeAggregation.getMSSDText());
+    Assert.assertEquals("0.008995", timeAggregation.getMSSD());
   }
 }

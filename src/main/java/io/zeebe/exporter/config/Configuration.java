@@ -20,41 +20,55 @@ import java.util.Map;
 
 public class Configuration {
 
-  private static final String DEFAULT_OUTPUT = "command-event-latency/";
-  private static final int DEFAULT_FIXED_RATE = 60;
+  private static final String DEFAULT_CSV_OUTPUT = "command-event-latency/";
+  private static final Integer DEFAULT_FIXED_RATE = 60;
+  private static final Boolean DEFAULT_CSV_ENABLED = false;
 
-  private static final String OUTPUT = "output";
+  private static final String CSV_OUTPUT = "csvOutput";
   private static final String FIXED_RATE = "fixedRate";
+  private static final String CSV_ENABLED = "csvEnabled";
 
-  private final String output;
+  private final String csvOutput;
   private final Integer fixedRate;
+  private final Boolean csvEnabled;
 
   public Configuration(final Context context) {
-    this.output = this.getOutput(context);
+    this.csvOutput = this.getCsvOutput(context);
     this.fixedRate = this.getFixedRate(context) * 1000;
+    this.csvEnabled = this.getCsvEnabled(context);
   }
 
-  public Configuration(final String output, final int fixedRate) {
-    this.output = output;
+  public Configuration(final String csvOutput, final Integer fixedRate, final Boolean csvEnabled) {
+    this.csvOutput = csvOutput;
     this.fixedRate = fixedRate;
+    this.csvEnabled = csvEnabled;
   }
 
-  public String getOutput() {
-    return output;
+  public String getCsvOutput() {
+    return csvOutput;
   }
 
   public Integer getFixedRate() {
     return fixedRate;
   }
 
-  private String getOutput(final Context context) {
-    final Object output = this.getArgument(context, OUTPUT);
-    return output != null ? (String) output : DEFAULT_OUTPUT;
+  public Boolean getCsvEnabled() {
+    return csvEnabled;
+  }
+
+  private String getCsvOutput(final Context context) {
+    final Object output = this.getArgument(context, CSV_OUTPUT);
+    return output != null ? (String) output : DEFAULT_CSV_OUTPUT;
   }
 
   private int getFixedRate(final Context context) {
     final Object fixedRate = this.getArgument(context, FIXED_RATE);
     return fixedRate != null ? ((Number) fixedRate).intValue() : DEFAULT_FIXED_RATE;
+  }
+
+  private Boolean getCsvEnabled(final Context context) {
+    final Object output = this.getArgument(context, CSV_ENABLED);
+    return output != null ? (Boolean) output : DEFAULT_CSV_ENABLED;
   }
 
   private Object getArgument(final Context context, final String key) {
