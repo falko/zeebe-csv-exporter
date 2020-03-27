@@ -45,7 +45,7 @@ public class InstanceTraceAnalyzer implements Analyzer {
         logger.error("Unexpected empty trace in analysis");
         continue;
       }
-      trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp));
+      trace.sort(Comparator.comparingLong(TimeRecord::getTimestamp)); // TODO: sort by key, because keys are increasing chronologically
 
       for (final TimeRecord currRecord : trace) {
         final int nextIndex = trace.indexOf(currRecord) + 1;
